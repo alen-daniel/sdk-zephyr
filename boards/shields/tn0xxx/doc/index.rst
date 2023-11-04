@@ -31,15 +31,8 @@ Pins Assignment of the Generic Sharp memory Display Shield
 
 The datasheet specifies: 
 
-* A power up and down sequence with timings specified between toggling of RST, 
-VCOM and input SPI lines. This MIP display is typically used in low power applications, and as 
-such having user control over the power down (or sleep) and power up (or wake up) options are 
-important. Since the API to power on and off the device is not present in the zephyr driver 
-display API, the control of these GPIOs per the datasheet is delegated to the user. 
-* VCOM = “L” is necessary when RST = ”H” When VCOM=“H”, otherwise the display does not turn 
-to black, and current consumption increases by shoot-through-current in panel (several mA). 
-Due to this factor, the VCOM signal is delegated to the user of this display driver API, 
-along with the RST pin.
+* A power up and down sequence with timings specified between toggling of RST, VCOM and input SPI lines. This MIP display is typically used in low power applications, and as such having user control over the power down (or sleep) and power up (or wake up) options are important. Since the API to power on and off the device is not present in the zephyr driver display API, the control of these GPIOs per the datasheet is delegated to the user. 
+* VCOM = “L” is necessary when RST = ”H” When VCOM=“H”, otherwise the display does not turn to black, and current consumption increases by shoot-through-current in panel (several mA). Due to this factor, the VCOM signal is delegated to the user of this display driver API, along with the RST pin.
 
 .. image:: ./images/power_sequence.png
    :align: center
