@@ -30,6 +30,7 @@ Pins Assignment of the Generic Sharp memory Display Shield
 
 
 The datasheet specifies: 
+
 * A power up and down sequence with timings specified between toggling of RST, 
 VCOM and input SPI lines. This MIP display is typically used in low power applications, and as 
 such having user control over the power down (or sleep) and power up (or wake up) options are 
