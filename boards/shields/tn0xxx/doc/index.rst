@@ -35,12 +35,12 @@ VCOM and input SPI lines. This MIP display is typically used in low power applic
 such having user control over the power down (or sleep) and power up (or wake up) options are 
 important. Since the API to power on and off the device is not present in the zephyr driver 
 display API, the control of these GPIOs per the datasheet is delegated to the user. 
-* *VCOM = “L” is necessary when RST = ”H” When VCOM=“H”, 
+* \*VCOM = “L” is necessary when RST = ”H” When VCOM=“H”, 
 display does not turn to black, and current consumption increases by shoot-through-current 
-in panel. (several mA)*. Due to this factor, the VCOM signal is delegated to the user of this 
+in panel. (several mA)\*. Due to this factor, the VCOM signal is delegated to the user of this 
 display driver API, along with the RST pin and other GPIOs.
 
-.. image:: ./images/powersequence.png
+.. image:: ./images/power_sequence.png
    :align: center
 
 Therefore, the display driver only controls the SPI lines (SCS, SI, SCLK) - the power up and power down 
@@ -54,10 +54,10 @@ Following displays are supported but shield only exists
 for TN0216ANVNANN. Other shields can be added by using the TN0216ANVNANN as
 a reference and changing the width, height, etc configurations.
 
-TN0103ANVNANN-GN00
-TN0181ANVNANN-GN00
-TN0216ANVNANN-GN00
-TN0227ANVNANN-GNX03
+* TN0103ANVNANN-GN00
+* TN0181ANVNANN-GN00
+* TN0216ANVNANN-GN00
+* TN0227ANVNANN-GNX03
 
 +----------------------+------------------------------+
 | Display              | Shield Designation           |
@@ -87,7 +87,4 @@ Set ``-DSHIELD=tn0216anvnann`` when you invoke ``west build``. For example:
 References
 **********
 
-.. target-notes::
-
-.. _datasheet:
-   https://display.kyocera.com/tn0216anvnann-gn00
+Datasheet: https://display.kyocera.com/tn0216anvnann-gn00
