@@ -84,6 +84,19 @@ enum display_screen_info {
 	 * Screen has x alignment constrained to width.
 	 */
 	SCREEN_INFO_X_ALIGNMENT_WIDTH	= BIT(4),
+	/**
+	 * Screen has y alignment constrained to width.
+	 */
+	SCREEN_INFO_Y_ALIGNMENT_WIDTH = BIT(5),
+	/**
+	 * Screen pixels represented by bytes stacked along the y axis
+	 */
+	SCREEN_INFO_VERTICAL_BIT_STACK = BIT(6),
+	/**
+	 * Screen pixels represented by bytes stacked along the y axis,
+	 * but the screen orientation is flipped by 180 degrees
+	 */
+	SCREEN_INFO_VERTICAL_BIT_STACK_FLIPPED = BIT(7)	
 };
 
 /**
