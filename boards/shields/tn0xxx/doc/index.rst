@@ -35,16 +35,16 @@ VCOM and input SPI lines. This MIP display is typically used in low power applic
 such having user control over the power down (or sleep) and power up (or wake up) options are 
 important. Since the API to power on and off the device is not present in the zephyr driver 
 display API, the control of these GPIOs per the datasheet is delegated to the user. 
-* \*VCOM = “L” is necessary when RST = ”H” When VCOM=“H”, 
-display does not turn to black, and current consumption increases by shoot-through-current 
-in panel. (several mA)\*. Due to this factor, the VCOM signal is delegated to the user of this 
-display driver API, along with the RST pin and other GPIOs.
+* VCOM = “L” is necessary when RST = ”H” When VCOM=“H”, otherwise the display does not turn 
+to black, and current consumption increases by shoot-through-current in panel (several mA). 
+Due to this factor, the VCOM signal is delegated to the user of this display driver API, 
+along with the RST pin.
 
 .. image:: ./images/power_sequence.png
    :align: center
 
-Therefore, the display driver only controls the SPI lines (SCS, SI, SCLK) - the power up and power down 
-sequence is delegated to the user.
+Therefore, the zephyr display driver for TN0XXX only controls the SPI lines (SCS, SI, SCLK) - 
+the power up and power down sequence is delegated to the user.
 
 
 Current supported displays
