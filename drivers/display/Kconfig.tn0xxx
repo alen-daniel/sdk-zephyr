@@ -15,14 +15,13 @@ config PORTRAIT_MODE
 	bool "TN0XXX uses bitmaps with bits aligned vertically"
 	default n
 	help
-	  Enable this to display to in portrait orientation using bitmaps aligned vertically
+	  Initialize display in portrait orientation using bitmaps aligned vertically
 
 config PORTRAIT_MODE_ROTATED_180_DEGREE
 	bool "TN0XXX display rotated 180 degrees and bits aligned vertically"
 	default n
 	help
-	  Enable this to display to in portrait orientation using bitmaps aligned vertically,
+	  Initialize display in portrait orientation using bitmaps aligned vertically,
 	  except that the display orientation is flipped by 180 degrees
-
 
 #endif // TN0XXX

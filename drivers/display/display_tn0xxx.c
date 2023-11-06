@@ -273,3 +273,4 @@ static struct display_driver_api kyo_tn0xxx_driver_api = {
 
 DEVICE_DT_INST_DEFINE( 0, kyo_tn0xxx_init, NULL, NULL, &kyo_tn0xxx_config, POST_KERNEL, 
             CONFIG_DISPLAY_INIT_PRIORITY, &kyo_tn0xxx_driver_api );
+ 
