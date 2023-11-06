@@ -24,4 +24,4 @@ config PORTRAIT_MODE_ROTATED_180_DEGREE
 	  Initialize display in portrait orientation using bitmaps aligned vertically,
 	  except that the display orientation is flipped by 180 degrees
 
-#endif # TN0XXX
+endif # TN0XXX
