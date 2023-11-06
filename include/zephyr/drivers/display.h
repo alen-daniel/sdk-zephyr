@@ -91,12 +91,12 @@ enum display_screen_info {
 	/**
 	 * Screen pixels represented by bytes stacked along the y axis
 	 */
-	SCREEN_INFO_VERTICAL_BIT_STACK = BIT(6),
+	SCREEN_INFO_VERTICAL_BIT_ALIGNMENT = BIT(6),
 	/**
 	 * Screen pixels represented by bytes stacked along the y axis,
 	 * but the screen orientation is flipped by 180 degrees
 	 */
-	SCREEN_INFO_VERTICAL_BIT_STACK_FLIPPED = BIT(7)	
+	SCREEN_INFO_VERTICAL_BIT_ALIGNMENT_ROTATED_180 = BIT(7)	
 };
 
 /**
