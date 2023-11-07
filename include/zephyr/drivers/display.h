@@ -93,7 +93,7 @@ enum display_screen_info {
 	 */
 	SCREEN_INFO_MONO_V_BITMAP = BIT(6),
 	/**
-	 * Screen pixels represented by bytes stacked along the y axis,
+	 * Screen pixels represented by bytes stacked along the bitmap alignment axis,
 	 * but the screen orientation is flipped by 180 degrees
 	 */
 	SCREEN_INFO_MONO_ROTATED_180 = BIT(7)

@@ -16,6 +16,8 @@ LOG_MODULE_REGISTER(tn0xxx, CONFIG_DISPLAY_LOG_LEVEL);
 #include <zephyr/drivers/spi.h>
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/logging/log.h>
+#include "lvgl.h"
+#include "lvgl_display.h"
 
 /* Driver for Kyocera's 2.16" RESOLUTION MEMORY IN PIXEL (MIP) TFT (TN0216ANVNANN)
  */
@@ -44,6 +46,10 @@ LOG_MODULE_REGISTER(tn0xxx, CONFIG_DISPLAY_LOG_LEVEL);
 
 struct tn0xxx_config_s {
 	struct spi_dt_spec bus;
+};
+
+struct tn0xxx_data_s {
+	enum display_orientation orientation;
 };
 
 // ---------- start of unsupported API ----------
@@ -86,10 +92,51 @@ static int tn0xxx_set_contrast(const struct device *dev, uint8_t contrast)
 }
 
 static int tn0xxx_set_orientation(const struct device *dev,
-				  const enum display_orientation orientation)
+				  const enum display_orientation new_orientation)
 {
-	LOG_ERR("Unsupported");
-	return -ENOTSUP;
+	struct tn0xxx_data_s *data = dev->data;
+
+	lv_disp_t *disp = lv_disp_get_default();
+	struct lvgl_disp_data *disp_data = disp->driver->user_data;
+	struct display_capabilities *caps = &disp_data->cap;
+
+	caps->screen_info = 0; // reset screen info
+
+	switch (new_orientation) {
+	case DISPLAY_ORIENTATION_NORMAL:
+		disp->driver->hor_res = TN0XXX_PANEL_WIDTH;
+		disp->driver->ver_res = TN0XXX_PANEL_HEIGHT;
+		caps->screen_info |= SCREEN_INFO_X_ALIGNMENT_WIDTH;
+		break;
+	case DISPLAY_ORIENTATION_ROTATED_90:
+		disp->driver->hor_res = TN0XXX_PANEL_HEIGHT;
+		disp->driver->ver_res = TN0XXX_PANEL_WIDTH;
+		caps->screen_info |= SCREEN_INFO_Y_ALIGNMENT_WIDTH;
+		caps->screen_info |= SCREEN_INFO_MONO_V_BITMAP;
+		break;
+	case DISPLAY_ORIENTATION_ROTATED_180:
+		disp->driver->hor_res = TN0XXX_PANEL_WIDTH;
+		disp->driver->ver_res = TN0XXX_PANEL_HEIGHT;
+		caps->screen_info |= SCREEN_INFO_X_ALIGNMENT_WIDTH;
+		caps->screen_info |= SCREEN_INFO_MONO_ROTATED_180;
+		break;
+	case DISPLAY_ORIENTATION_ROTATED_270:
+		disp->driver->hor_res = TN0XXX_PANEL_HEIGHT;
+		disp->driver->ver_res = TN0XXX_PANEL_WIDTH;
+		caps->screen_info |= SCREEN_INFO_Y_ALIGNMENT_WIDTH;
+		caps->screen_info |= SCREEN_INFO_MONO_V_BITMAP;
+		caps->screen_info |= SCREEN_INFO_MONO_ROTATED_180;
+		break;
+	default:
+		LOG_ERR("Unsupported");
+		return -ENOTSUP;
+	}
+	caps->x_resolution = disp->driver->hor_res;
+	caps->y_resolution = disp->driver->ver_res;
+	lv_disp_drv_update(disp, disp->driver);
+	data->orientation = new_orientation;
+
+	return 0;
 }
 
 static int tn0xxx_set_pixel_format(const struct device *dev, const enum display_pixel_format pf)
@@ -113,9 +160,7 @@ static int update_display(const struct device *dev, uint16_t start_line, uint16_
 				   TN0XXX_PIXELS_PER_BYTE];
 
 	uint16_t bitmap_buffer_index = 0;
-	for (int column_addr = start_line; column_addr < start_line + num_lines;
-	     //  column_addr < start_line + num_lines && column_addr < TN0XXX_PANEL_WIDTH;
-	     column_addr++) {
+	for (int column_addr = start_line; column_addr < start_line + num_lines; column_addr++) {
 		uint8_t buff_index = 0;
 
 		single_line_buffer[buff_index++] = (uint8_t)column_addr;
@@ -135,7 +180,6 @@ static int update_display(const struct device *dev, uint16_t start_line, uint16_
 
 		if (spi_write_dt(&config->bus, &tx_bufs)) {
 			LOG_ERR("SPI write to black out screen failed\r\n");
-
 			return 1;
 		}
 	}
@@ -149,6 +193,11 @@ static int update_display(const struct device *dev, uint16_t start_line, uint16_
 static int tn0xxx_write(const struct device *dev, const uint16_t x, const uint16_t y,
 			const struct display_buffer_descriptor *desc, const void *buf)
 {
+	const struct tn0xxx_data_s *data = dev->data;
+
+	lv_disp_t *disp = lv_disp_get_default();
+	struct lvgl_disp_data *disp_data = disp->driver->user_data;
+	struct display_capabilities *caps = &disp_data->cap;
 
 	LOG_INF("X: %d, Y: %d, W: %d, H: %d, pitch: %d, buf_size: %d", x, y, desc->width,
 		desc->height, desc->pitch, desc->buf_size);
@@ -158,46 +207,41 @@ static int tn0xxx_write(const struct device *dev, const uint16_t x, const uint16
 		return -EINVAL;
 	}
 
-#if CONFIG_TN0XXX_VERTICAL_BIT_MAPPING
+	if (data->orientation == DISPLAY_ORIENTATION_ROTATED_90 ||
+	    data->orientation == DISPLAY_ORIENTATION_ROTATED_270) {
 
-	if (desc->height != TN0XXX_PANEL_HEIGHT) {
-		LOG_ERR("Height restricted to panel height %d right now.. user provided %d",
-			TN0XXX_PANEL_HEIGHT, desc->height);
-		return -EINVAL;
+		// if (desc->pitch != desc->width) {
+		// 	LOG_ERR("Unsupported mode");
+		// 	return -ENOTSUP;
+		// }
+
+		if ((x + desc->width) > caps->x_resolution) {
+			LOG_ERR("Buffer out of bounds (width)");
+			return -EINVAL;
+		}
+
+		if (desc->height != caps->y_resolution) {
+			LOG_ERR("Height restricted to panel height %d.. user provided %d",
+				caps->y_resolution, desc->height);
+			return -EINVAL;
+		}
+
+		if (y != 0) {
+			LOG_ERR("y-coordinate has to be 0");
+			return -EINVAL;
+		};
+
+		return update_display(dev, x, desc->width, buf, caps->y_resolution);
 	}
 
-	if (y != 0) {
-		LOG_ERR("Y-coordinate has to be 0");
-		return -EINVAL;
-	};
-
-	// if (desc->pitch != desc->height) {
-	// 	LOG_ERR("Unsupported mode");
-	// 	return -ENOTSUP;
-	// }
-
-	if ((x + desc->width) > TN0XXX_PANEL_WIDTH) {
-		LOG_ERR("Buffer out of bounds (width)");
-		return -EINVAL;
-	}
-
-	return update_display(dev, x, desc->width, buf, TN0XXX_PANEL_HEIGHT);
-
-#endif
-
-	// if (desc->pitch != desc->width) {
-	// 	LOG_ERR("Unsupported mode");
-	// 	return -ENOTSUP;
-	// }
-
-	if ((y + desc->height) > TN0XXX_PANEL_HEIGHT) {
+	if ((y + desc->height) > caps->y_resolution) {
 		LOG_ERR("Buffer out of bounds (height)");
 		return -EINVAL;
 	}
 
-	if (desc->width != TN0XXX_PANEL_WIDTH) {
-		LOG_ERR("Width restricted to panel width %d right now.. user provided %d",
-			TN0XXX_PANEL_WIDTH, desc->width);
+	if (desc->width != caps->x_resolution) {
+		LOG_ERR("Width restricted to panel width %d.. user provided %d", caps->x_resolution,
+			desc->width);
 		return -EINVAL;
 	}
 
@@ -206,7 +250,7 @@ static int tn0xxx_write(const struct device *dev, const uint16_t x, const uint16
 		return -EINVAL;
 	};
 
-	return update_display(dev, y, desc->height, buf, TN0XXX_PANEL_WIDTH);
+	return update_display(dev, y, desc->height, buf, caps->x_resolution);
 }
 
 // #define CONFIG_PORTRAIT_MODE
@@ -217,18 +261,8 @@ static void tn0xxx_get_capabilities(const struct device *dev, struct display_cap
 	caps->y_resolution = TN0XXX_PANEL_HEIGHT;
 	caps->supported_pixel_formats = PIXEL_FORMAT_MONO01;
 	caps->current_pixel_format = PIXEL_FORMAT_MONO01;
-
-#if CONFIG_TN0XXX_VERTICAL_BIT_MAPPING
-	caps->screen_info = SCREEN_INFO_Y_ALIGNMENT_WIDTH;
-	caps->screen_info |= SCREEN_INFO_MONO_V_BITMAP;
-#else
-	caps->screen_info = SCREEN_INFO_X_ALIGNMENT_WIDTH;
-#endif
-
-#if CONFIG_TN0XXX_ROTATED_180_DEGREE
-	caps->screen_info |= SCREEN_INFO_MONO_ROTATED_180;
-#endif
-	LOG_INF("screen info: %u", caps->screen_info);
+	caps->current_orientation = DISPLAY_ORIENTATION_NORMAL;
+	// caps->screen_info = SCREEN_INFO_X_ALIGNMENT_WIDTH;
 }
 
 static int tn0xxx_init(const struct device *dev)
@@ -243,13 +277,6 @@ static int tn0xxx_init(const struct device *dev)
 	return 0;
 }
 
-static const struct tn0xxx_config_s tn0xxx_config = {
-	.bus = SPI_DT_SPEC_INST_GET(0,
-				    SPI_OP_MODE_MASTER | SPI_WORD_SET(8) | SPI_TRANSFER_LSB |
-					    SPI_CS_ACTIVE_HIGH | SPI_HOLD_ON_CS | SPI_LOCK_ON,
-				    2),
-};
-
 static struct display_driver_api tn0xxx_driver_api = {
 	.blanking_on = tn0xxx_blanking_on,
 	.blanking_off = tn0xxx_blanking_off,
@@ -263,5 +290,14 @@ static struct display_driver_api tn0xxx_driver_api = {
 	.set_orientation = tn0xxx_set_orientation,
 };
 
-DEVICE_DT_INST_DEFINE(0, tn0xxx_init, NULL, NULL, &tn0xxx_config, POST_KERNEL,
+static struct tn0xxx_data_s tn0xxx_data = {.orientation = DISPLAY_ORIENTATION_NORMAL};
+
+static const struct tn0xxx_config_s tn0xxx_config = {
+	.bus = SPI_DT_SPEC_INST_GET(0,
+				    SPI_OP_MODE_MASTER | SPI_WORD_SET(8) | SPI_TRANSFER_LSB |
+					    SPI_CS_ACTIVE_HIGH | SPI_HOLD_ON_CS | SPI_LOCK_ON,
+				    2),
+};
+
+DEVICE_DT_INST_DEFINE(0, tn0xxx_init, NULL, &tn0xxx_data, &tn0xxx_config, POST_KERNEL,
 		      CONFIG_DISPLAY_INIT_PRIORITY, &tn0xxx_driver_api);
