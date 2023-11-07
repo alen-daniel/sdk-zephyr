@@ -135,6 +135,7 @@ static int tn0xxx_set_orientation(const struct device *dev,
 	caps->y_resolution = disp->driver->ver_res;
 	lv_disp_drv_update(disp, disp->driver);
 	data->orientation = new_orientation;
+	lv_obj_invalidate(lv_scr_act());
 
 	return 0;
 }
