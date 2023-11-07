@@ -161,52 +161,40 @@ static int tn0xxx_write(const struct device *dev, const uint16_t x, const uint16
 #if CONFIG_PORTRAIT_MODE || CONFIG_PORTRAIT_MODE_ROTATED_180_DEGREE
 
 	if (desc->height != TN0XXX_PANEL_HEIGHT) {
-		LOG_ERR("Height not a multiple of %d", TN0XXX_PANEL_HEIGHT);
-		return -EINVAL;
-	}
-
-	if (desc->pitch != desc->height) {
-		LOG_ERR("Unsupported mode");
-		return -ENOTSUP;
-	}
-
-	if ((x + desc->width) > TN0XXX_PANEL_WIDTH) {
-		LOG_ERR("Buffer out of bounds (width)");
+		LOG_ERR("Height restricted to panel height %d right now.. user provided %d",
+			TN0XXX_PANEL_HEIGHT, desc->height);
 		return -EINVAL;
 	}
 
 	if (y != 0) {
-		LOG_ERR("y-coordinate has to be 0");
+		LOG_ERR("Y-coordinate has to be 0");
 		return -EINVAL;
+	};
+
+	if (desc->width * desc->height / TN0XXX_PIXELS_PER_BYTE != desc->buf_size) {
+		LOG_INF("pffft I cant handle that drama");
 	}
 
-	/* Adding 1 since line numbering on the display starts with 1 */
-	return update_display(dev, y, desc->height, buf);
+	return update_display(dev, x, desc->width, buf);
 
 #endif
 
 	if (desc->width != TN0XXX_PANEL_WIDTH) {
-		LOG_ERR("Width not a multiple of %d", TN0XXX_PANEL_WIDTH);
-		return -EINVAL;
-	}
-
-	// if (desc->pitch != desc->width) {
-	// 	LOG_ERR("Unsupported mode");
-	// 	return -ENOTSUP;
-	// }
-
-	if ((y + desc->height) > TN0XXX_PANEL_HEIGHT) {
-		LOG_ERR("Buffer out of bounds (height)");
+		LOG_ERR("Height restricted to panel height %d right now.. user provided %d",
+			TN0XXX_PANEL_WIDTH, desc->width);
 		return -EINVAL;
 	}
 
 	if (x != 0) {
-		LOG_ERR("X-coordinate has to be 0");
+		LOG_ERR("x-coordinate has to be 0");
 		return -EINVAL;
+	};
+
+	if (desc->height * desc->width / TN0XXX_PIXELS_PER_BYTE != desc->buf_size) {
+		LOG_INF("pffft I cant handle that drama");
 	}
 
-	/* Adding 1 since line numbering on the display starts with 1 */
-	return update_display(dev, x, desc->width, buf);
+	return update_display(dev, y, desc->height, buf);
 }
 
 // #define CONFIG_PORTRAIT_MODE
@@ -220,15 +208,16 @@ static void tn0xxx_get_capabilities(const struct device *dev, struct display_cap
 	caps->current_orientation = DISPLAY_ORIENTATION_NORMAL;
 
 #if CONFIG_PORTRAIT_MODE || CONFIG_PORTRAIT_MODE_ROTATED_180_DEGREE
-	caps->screen_info = SCREEN_INFO_X_ALIGNMENT_WIDTH;
-#else
 	caps->screen_info = SCREEN_INFO_Y_ALIGNMENT_WIDTH;
 #if CONFIG_PORTRAIT_MODE_ROTATED_180_DEGREE
 	caps->screen_info |= SCREEN_INFO_VERTICAL_BIT_ALIGNMENT_ROTATED_180;
 #else
 	caps->screen_info |= SCREEN_INFO_VERTICAL_BIT_ALIGNMENT;
 #endif // CONFIG_PORTRAIT_MODE_ROTATED_180_DEGREE
+#else
+	caps->screen_info = SCREEN_INFO_X_ALIGNMENT_WIDTH;
 #endif // CONFIG_PORTRAIT_MODE || CONFIG_PORTRAIT_MODE_ROTATED_180_DEGREE
+	LOG_INF("%u", caps->screen_info);
 }
 
 static int tn0xxx_init(const struct device *dev)
