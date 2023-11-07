@@ -262,7 +262,7 @@ static void tn0xxx_get_capabilities(const struct device *dev, struct display_cap
 	caps->supported_pixel_formats = PIXEL_FORMAT_MONO01;
 	caps->current_pixel_format = PIXEL_FORMAT_MONO01;
 	caps->current_orientation = DISPLAY_ORIENTATION_NORMAL;
-	// caps->screen_info = SCREEN_INFO_X_ALIGNMENT_WIDTH;
+	caps->screen_info = SCREEN_INFO_X_ALIGNMENT_WIDTH;
 }
 
 static int tn0xxx_init(const struct device *dev)
