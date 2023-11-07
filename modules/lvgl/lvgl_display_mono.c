@@ -65,26 +65,39 @@ void lvgl_set_px_cb_mono(lv_disp_drv_t *disp_drv, uint8_t *buf, lv_coord_t buf_w
 		} else {
 			bit = y % 8;
 		}
-	} else if (data->cap.screen_info & SCREEN_INFO_VERTICAL_BIT_ALIGNMENT) {
-		buf_xy = buf + y / 8 + (width - 1 - x) * height / 8;
-		if (data->cap.screen_info & SCREEN_INFO_MONO_MSB_FIRST) {
-			bit = 7 - y % 8;
+	} else if (data->cap.screen_info & SCREEN_INFO_MONO_V_BITMAP) {
+
+		if (data->cap.screen_info & SCREEN_INFO_MONO_ROTATED_180) {
+			buf_xy = buf + x * height / 8 + (height - 1 - y) / 8;
+			if (data->cap.screen_info & SCREEN_INFO_MONO_MSB_FIRST) {
+				bit = y % 8;
+			} else {
+				bit = 7 - (y % 8);
+			}
 		} else {
-			bit = y % 8;
-		}
-	} else if (data->cap.screen_info & SCREEN_INFO_VERTICAL_BIT_ALIGNMENT_ROTATED_180) {
-		buf_xy = buf + (height - 1 - y) / 8 + x * height / 8;
-		if (data->cap.screen_info & SCREEN_INFO_MONO_MSB_FIRST) {
-			bit = y % 8;
-		} else {
-			bit = 7 - (y % 8);
+			buf_xy = buf + (width - 1 - x) * height / 8 + y / 8;
+			if (data->cap.screen_info & SCREEN_INFO_MONO_MSB_FIRST) {
+				bit = 7 - y % 8;
+			} else {
+				bit = y % 8;
+			}
 		}
 	} else {
-		buf_xy = buf + x / 8 + y * buf_w / 8;
-		if (data->cap.screen_info & SCREEN_INFO_MONO_MSB_FIRST) {
-			bit = 7 - x % 8;
+		if (data->cap.screen_info & SCREEN_INFO_MONO_ROTATED_180) { // TODO
+			buf_xy = buf + (width - 1 - x) / 8 + (height - y - 1) * width / 8;
+			if (data->cap.screen_info & SCREEN_INFO_MONO_MSB_FIRST) {
+				bit = x % 8;
+			} else {
+				bit = 7 - x % 8;
+			}
 		} else {
-			bit = x % 8;
+			buf_xy = buf + x / 8 + y * width / 8;
+
+			if (data->cap.screen_info & SCREEN_INFO_MONO_MSB_FIRST) {
+				bit = 7 - x % 8;
+			} else {
+				bit = x % 8;
+			}
 		}
 	}
 	if (data->cap.current_pixel_format == PIXEL_FORMAT_MONO10) {

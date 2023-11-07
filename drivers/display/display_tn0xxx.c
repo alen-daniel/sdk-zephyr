@@ -104,23 +104,23 @@ static int tn0xxx_set_pixel_format(const struct device *dev, const enum display_
 // ---------- end of unsupported API ----------
 
 static int update_display(const struct device *dev, uint16_t start_line, uint16_t num_lines,
-			  const uint8_t *bitmap_buffer)
+			  const uint8_t *bitmap_buffer, uint16_t line_length)
 {
 
 	const struct tn0xxx_config_s *config = dev->config;
-	uint8_t single_line_buffer[(TN0XXX_PANEL_HEIGHT + LCD_DUMMY_SPI_CYCLES_LEN_BITS +
+	uint8_t single_line_buffer[(line_length + LCD_DUMMY_SPI_CYCLES_LEN_BITS +
 				    LCD_ADDRESS_LEN_BITS) /
 				   TN0XXX_PIXELS_PER_BYTE];
 
 	uint16_t bitmap_buffer_index = 0;
-	for (int column_addr = start_line;
-	     column_addr < start_line + num_lines && column_addr < TN0XXX_PANEL_WIDTH;
+	for (int column_addr = start_line; column_addr < start_line + num_lines;
+	     //  column_addr < start_line + num_lines && column_addr < TN0XXX_PANEL_WIDTH;
 	     column_addr++) {
 		uint8_t buff_index = 0;
 
 		single_line_buffer[buff_index++] = (uint8_t)column_addr;
 
-		for (int i = 0; i < TN0XXX_PANEL_HEIGHT / TN0XXX_PIXELS_PER_BYTE; i++) {
+		for (int i = 0; i < line_length / TN0XXX_PIXELS_PER_BYTE; i++) {
 			single_line_buffer[buff_index++] = bitmap_buffer[bitmap_buffer_index++];
 		}
 		// write 32 dummy bits
@@ -158,7 +158,7 @@ static int tn0xxx_write(const struct device *dev, const uint16_t x, const uint16
 		return -EINVAL;
 	}
 
-#if CONFIG_PORTRAIT_MODE || CONFIG_PORTRAIT_MODE_ROTATED_180_DEGREE
+#if CONFIG_TN0XXX_VERTICAL_BIT_MAPPING
 
 	if (desc->height != TN0XXX_PANEL_HEIGHT) {
 		LOG_ERR("Height restricted to panel height %d right now.. user provided %d",
@@ -171,16 +171,32 @@ static int tn0xxx_write(const struct device *dev, const uint16_t x, const uint16
 		return -EINVAL;
 	};
 
-	if (desc->width * desc->height / TN0XXX_PIXELS_PER_BYTE != desc->buf_size) {
-		LOG_INF("pffft I cant handle that drama");
+	// if (desc->pitch != desc->height) {
+	// 	LOG_ERR("Unsupported mode");
+	// 	return -ENOTSUP;
+	// }
+
+	if ((x + desc->width) > TN0XXX_PANEL_WIDTH) {
+		LOG_ERR("Buffer out of bounds (width)");
+		return -EINVAL;
 	}
 
-	return update_display(dev, x, desc->width, buf);
+	return update_display(dev, x, desc->width, buf, TN0XXX_PANEL_HEIGHT);
 
 #endif
 
+	// if (desc->pitch != desc->width) {
+	// 	LOG_ERR("Unsupported mode");
+	// 	return -ENOTSUP;
+	// }
+
+	if ((y + desc->height) > TN0XXX_PANEL_HEIGHT) {
+		LOG_ERR("Buffer out of bounds (height)");
+		return -EINVAL;
+	}
+
 	if (desc->width != TN0XXX_PANEL_WIDTH) {
-		LOG_ERR("Height restricted to panel height %d right now.. user provided %d",
+		LOG_ERR("Width restricted to panel width %d right now.. user provided %d",
 			TN0XXX_PANEL_WIDTH, desc->width);
 		return -EINVAL;
 	}
@@ -190,11 +206,7 @@ static int tn0xxx_write(const struct device *dev, const uint16_t x, const uint16
 		return -EINVAL;
 	};
 
-	if (desc->height * desc->width / TN0XXX_PIXELS_PER_BYTE != desc->buf_size) {
-		LOG_INF("pffft I cant handle that drama");
-	}
-
-	return update_display(dev, y, desc->height, buf);
+	return update_display(dev, y, desc->height, buf, TN0XXX_PANEL_WIDTH);
 }
 
 // #define CONFIG_PORTRAIT_MODE
@@ -205,18 +217,18 @@ static void tn0xxx_get_capabilities(const struct device *dev, struct display_cap
 	caps->y_resolution = TN0XXX_PANEL_HEIGHT;
 	caps->supported_pixel_formats = PIXEL_FORMAT_MONO01;
 	caps->current_pixel_format = PIXEL_FORMAT_MONO01;
-	caps->current_orientation = DISPLAY_ORIENTATION_NORMAL;
 
-#if CONFIG_PORTRAIT_MODE || CONFIG_PORTRAIT_MODE_ROTATED_180_DEGREE
+#if CONFIG_TN0XXX_VERTICAL_BIT_MAPPING
 	caps->screen_info = SCREEN_INFO_Y_ALIGNMENT_WIDTH;
-#if CONFIG_PORTRAIT_MODE_ROTATED_180_DEGREE
-	caps->screen_info |= SCREEN_INFO_VERTICAL_BIT_ALIGNMENT_ROTATED_180;
-#else
-	caps->screen_info |= SCREEN_INFO_VERTICAL_BIT_ALIGNMENT;
-#endif // CONFIG_PORTRAIT_MODE_ROTATED_180_DEGREE
+	caps->screen_info |= SCREEN_INFO_MONO_V_BITMAP;
 #else
 	caps->screen_info = SCREEN_INFO_X_ALIGNMENT_WIDTH;
-#endif // CONFIG_PORTRAIT_MODE || CONFIG_PORTRAIT_MODE_ROTATED_180_DEGREE
+#endif
+
+#if CONFIG_TN0XXX_ROTATED_180_DEGREE
+	caps->screen_info |= SCREEN_INFO_MONO_ROTATED_180;
+#endif
+	LOG_INF("screen info: %u", caps->screen_info);
 }
 
 static int tn0xxx_init(const struct device *dev)

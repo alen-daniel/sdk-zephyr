@@ -11,13 +11,13 @@ config TN0XXX
 
 if TN0XXX
 
-config PORTRAIT_MODE
+config TN0XXX_VERTICAL_BIT_MAPPING
 	bool "TN0XXX uses bitmaps with bits aligned vertically"
 	default n
 	help
 	  Initialize display in portrait orientation using bitmaps aligned vertically
 
-config PORTRAIT_MODE_ROTATED_180_DEGREE
+config TN0XXX_ROTATED_180_DEGREE
 	bool "TN0XXX display rotated 180 degrees and bits aligned vertically"
 	default n
 	help
