@@ -150,7 +150,8 @@ static int tn0xxx_write(const struct device *dev, const uint16_t x, const uint16
 			const struct display_buffer_descriptor *desc, const void *buf)
 {
 
-	LOG_INF("X: %d, Y: %d, W: %d, H: %d", x, y, desc->width, desc->height);
+	LOG_INF("X: %d, Y: %d, W: %d, H: %d, pitch: %d, buf_size: %d", x, y, desc->width,
+		desc->height, desc->pitch, desc->buf_size);
 
 	if (buf == NULL) {
 		LOG_WRN("Display buffer is not available");
@@ -189,10 +190,10 @@ static int tn0xxx_write(const struct device *dev, const uint16_t x, const uint16
 		return -EINVAL;
 	}
 
-	if (desc->pitch != desc->width) {
-		LOG_ERR("Unsupported mode");
-		return -ENOTSUP;
-	}
+	// if (desc->pitch != desc->width) {
+	// 	LOG_ERR("Unsupported mode");
+	// 	return -ENOTSUP;
+	// }
 
 	if ((y + desc->height) > TN0XXX_PANEL_HEIGHT) {
 		LOG_ERR("Buffer out of bounds (height)");
@@ -216,6 +217,7 @@ static void tn0xxx_get_capabilities(const struct device *dev, struct display_cap
 	caps->y_resolution = TN0XXX_PANEL_HEIGHT;
 	caps->supported_pixel_formats = PIXEL_FORMAT_MONO01;
 	caps->current_pixel_format = PIXEL_FORMAT_MONO01;
+	caps->current_orientation = DISPLAY_ORIENTATION_NORMAL;
 
 #if CONFIG_PORTRAIT_MODE || CONFIG_PORTRAIT_MODE_ROTATED_180_DEGREE
 	caps->screen_info = SCREEN_INFO_X_ALIGNMENT_WIDTH;
