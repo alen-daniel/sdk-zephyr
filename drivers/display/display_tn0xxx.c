@@ -217,7 +217,6 @@ static void tn0xxx_get_capabilities(const struct device *dev, struct display_cap
 #else
 	caps->screen_info = SCREEN_INFO_X_ALIGNMENT_WIDTH;
 #endif // CONFIG_PORTRAIT_MODE || CONFIG_PORTRAIT_MODE_ROTATED_180_DEGREE
-	LOG_INF("%u", caps->screen_info);
 }
 
 static int tn0xxx_init(const struct device *dev)
