@@ -108,17 +108,17 @@ static int tn0xxx_set_orientation(const struct device *dev,
 		disp->driver->ver_res = TN0XXX_PANEL_HEIGHT;
 		caps->screen_info |= SCREEN_INFO_X_ALIGNMENT_WIDTH;
 		break;
-	case DISPLAY_ORIENTATION_ROTATED_90:
-		disp->driver->hor_res = TN0XXX_PANEL_HEIGHT;
-		disp->driver->ver_res = TN0XXX_PANEL_WIDTH;
-		caps->screen_info |= SCREEN_INFO_Y_ALIGNMENT_WIDTH;
-		caps->screen_info |= SCREEN_INFO_MONO_V_BITMAP;
-		break;
 	case DISPLAY_ORIENTATION_ROTATED_180:
 		disp->driver->hor_res = TN0XXX_PANEL_WIDTH;
 		disp->driver->ver_res = TN0XXX_PANEL_HEIGHT;
 		caps->screen_info |= SCREEN_INFO_X_ALIGNMENT_WIDTH;
 		caps->screen_info |= SCREEN_INFO_MONO_ROTATED_180;
+		break;
+	case DISPLAY_ORIENTATION_ROTATED_90:
+		disp->driver->hor_res = TN0XXX_PANEL_HEIGHT;
+		disp->driver->ver_res = TN0XXX_PANEL_WIDTH;
+		caps->screen_info |= SCREEN_INFO_Y_ALIGNMENT_WIDTH;
+		caps->screen_info |= SCREEN_INFO_MONO_V_BITMAP;
 		break;
 	case DISPLAY_ORIENTATION_ROTATED_270:
 		disp->driver->hor_res = TN0XXX_PANEL_HEIGHT;
@@ -152,11 +152,11 @@ static int tn0xxx_set_pixel_format(const struct device *dev, const enum display_
 // ---------- end of unsupported API ----------
 
 static int update_display(const struct device *dev, uint16_t start_line, uint16_t num_lines,
-			  const uint8_t *bitmap_buffer, uint16_t line_length)
+			  const uint8_t *bitmap_buffer)
 {
 
 	const struct tn0xxx_config_s *config = dev->config;
-	uint8_t single_line_buffer[(line_length + LCD_DUMMY_SPI_CYCLES_LEN_BITS +
+	uint8_t single_line_buffer[(TN0XXX_PANEL_WIDTH + LCD_DUMMY_SPI_CYCLES_LEN_BITS +
 				    LCD_ADDRESS_LEN_BITS) /
 				   TN0XXX_PIXELS_PER_BYTE];
 
@@ -166,7 +166,7 @@ static int update_display(const struct device *dev, uint16_t start_line, uint16_
 
 		single_line_buffer[buff_index++] = (uint8_t)column_addr;
 
-		for (int i = 0; i < line_length / TN0XXX_PIXELS_PER_BYTE; i++) {
+		for (int i = 0; i < TN0XXX_PANEL_WIDTH / TN0XXX_PIXELS_PER_BYTE; i++) {
 			single_line_buffer[buff_index++] = bitmap_buffer[bitmap_buffer_index++];
 		}
 		// write 32 dummy bits
