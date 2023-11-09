@@ -50,6 +50,7 @@ struct tn0xxx_config_s {
 
 struct tn0xxx_data_s {
 	enum display_orientation orientation;
+	enum display_pixel_format pixel_format;
 };
 
 // ---------- start of unsupported API ----------
@@ -103,29 +104,20 @@ static int tn0xxx_set_orientation(const struct device *dev,
 	caps->screen_info = 0; // reset screen info
 
 	switch (new_orientation) {
+	case DISPLAY_ORIENTATION_ROTATED_180:
+		caps->screen_info |= SCREEN_INFO_MONO_ROTATED_180;
 	case DISPLAY_ORIENTATION_NORMAL:
 		disp->driver->hor_res = TN0XXX_PANEL_WIDTH;
 		disp->driver->ver_res = TN0XXX_PANEL_HEIGHT;
 		caps->screen_info |= SCREEN_INFO_X_ALIGNMENT_WIDTH;
 		break;
-	case DISPLAY_ORIENTATION_ROTATED_180:
-		disp->driver->hor_res = TN0XXX_PANEL_WIDTH;
-		disp->driver->ver_res = TN0XXX_PANEL_HEIGHT;
-		caps->screen_info |= SCREEN_INFO_X_ALIGNMENT_WIDTH;
+	case DISPLAY_ORIENTATION_ROTATED_270:
 		caps->screen_info |= SCREEN_INFO_MONO_ROTATED_180;
-		break;
 	case DISPLAY_ORIENTATION_ROTATED_90:
 		disp->driver->hor_res = TN0XXX_PANEL_HEIGHT;
 		disp->driver->ver_res = TN0XXX_PANEL_WIDTH;
 		caps->screen_info |= SCREEN_INFO_Y_ALIGNMENT_WIDTH;
 		caps->screen_info |= SCREEN_INFO_MONO_V_BITMAP;
-		break;
-	case DISPLAY_ORIENTATION_ROTATED_270:
-		disp->driver->hor_res = TN0XXX_PANEL_HEIGHT;
-		disp->driver->ver_res = TN0XXX_PANEL_WIDTH;
-		caps->screen_info |= SCREEN_INFO_Y_ALIGNMENT_WIDTH;
-		caps->screen_info |= SCREEN_INFO_MONO_V_BITMAP;
-		caps->screen_info |= SCREEN_INFO_MONO_ROTATED_180;
 		break;
 	default:
 		LOG_ERR("Unsupported");
@@ -142,11 +134,21 @@ static int tn0xxx_set_orientation(const struct device *dev,
 
 static int tn0xxx_set_pixel_format(const struct device *dev, const enum display_pixel_format pf)
 {
-	if (pf == PIXEL_FORMAT_MONO01) {
+
+	lv_disp_t *disp = lv_disp_get_default();
+	struct lvgl_disp_data *disp_data = disp->driver->user_data;
+	struct display_capabilities *caps = &disp_data->cap;
+	struct tn0xxx_data_s *data = dev->data;
+
+	if (pf & caps->supported_pixel_formats) {
+		caps->current_pixel_format = pf;
+		data->pixel_format = pf;
+		lv_disp_drv_update(disp, disp->driver);
 		return 0;
 	}
 
-	LOG_ERR("specified pixel format not supported");
+	LOG_ERR("specified pixel format %d not supported, supported formats are %d", pf,
+		caps->supported_pixel_formats);
 	return -ENOTSUP;
 }
 // ---------- end of unsupported API ----------
@@ -232,7 +234,7 @@ static int tn0xxx_write(const struct device *dev, const uint16_t x, const uint16
 			return -EINVAL;
 		};
 
-		return update_display(dev, x, desc->width, buf, caps->y_resolution);
+		return update_display(dev, x, desc->width, buf);
 	}
 
 	if ((y + desc->height) > caps->y_resolution) {
@@ -251,7 +253,7 @@ static int tn0xxx_write(const struct device *dev, const uint16_t x, const uint16
 		return -EINVAL;
 	};
 
-	return update_display(dev, y, desc->height, buf, caps->x_resolution);
+	return update_display(dev, y, desc->height, buf);
 }
 
 // #define CONFIG_PORTRAIT_MODE
@@ -260,7 +262,7 @@ static void tn0xxx_get_capabilities(const struct device *dev, struct display_cap
 	memset(caps, 0, sizeof(struct display_capabilities));
 	caps->x_resolution = TN0XXX_PANEL_WIDTH;
 	caps->y_resolution = TN0XXX_PANEL_HEIGHT;
-	caps->supported_pixel_formats = PIXEL_FORMAT_MONO01;
+	caps->supported_pixel_formats = PIXEL_FORMAT_MONO01 | PIXEL_FORMAT_MONO10;
 	caps->current_pixel_format = PIXEL_FORMAT_MONO01;
 	caps->current_orientation = DISPLAY_ORIENTATION_NORMAL;
 	caps->screen_info = SCREEN_INFO_X_ALIGNMENT_WIDTH;
